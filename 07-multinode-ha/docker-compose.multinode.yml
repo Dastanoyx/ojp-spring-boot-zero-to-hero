@@ -1,0 +1,33 @@
+name: ojp-multinode
+
+# Two OJP server nodes in front of the SAME PostgreSQL, for HA + load distribution.
+# The driver uses a multinode URL and handles routing + failover client-side —
+# no external load balancer required.
+#
+#   # download drivers into ./drivers/ojp-libs first (see infra script)
+#   docker compose -f docker-compose.multinode.yml up -d
+#
+# Assumes PostgreSQL from ../infra is already running on localhost:5432.
+
+services:
+  ojp-node-1:
+    image: rrobetti/ojp:0.4.7-beta
+    container_name: ojp-node-1
+    ports:
+      - "1059:1059"           # node 1 on the default port
+    volumes:
+      - ./drivers/ojp-libs:/opt/ojp/ojp-libs
+    environment:
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=UTC"
+    restart: unless-stopped
+
+  ojp-node-2:
+    image: rrobetti/ojp:0.4.7-beta
+    container_name: ojp-node-2
+    ports:
+      - "1060:1059"           # node 2 mapped to host port 1060
+    volumes:
+      - ./drivers/ojp-libs:/opt/ojp/ojp-libs
+    environment:
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=UTC"
+    restart: unless-stopped

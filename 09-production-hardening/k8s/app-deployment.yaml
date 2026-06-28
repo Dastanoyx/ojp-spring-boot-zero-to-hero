@@ -1,0 +1,44 @@
+# Example Spring Boot app deployment that talks to OJP. The whole point: you can
+# crank up replicas freely because the app holds no DB connections — OJP does.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: books-app
+  labels: { app: books-app }
+spec:
+  replicas: 10            # scale this high; the database won't feel it
+  selector:
+    matchLabels: { app: books-app }
+  template:
+    metadata:
+      labels: { app: books-app }
+    spec:
+      containers:
+        - name: books-app
+          image: your-registry/books-app:1.0.0
+          ports:
+            - containerPort: 8080
+          env:
+            # Multinode URL pointing at the OJP server pods (via the headless svc).
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:ojp[ojp-server:1059]_postgresql://postgres:5432/defaultdb"
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom: { secretKeyRef: { name: db-credentials, key: username } }
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom: { secretKeyRef: { name: db-credentials, key: password } }
+            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+              value: "org.openjproxy.jdbc.Driver"
+            - name: SPRING_DATASOURCE_TYPE
+              value: "org.springframework.jdbc.datasource.SimpleDriverDataSource"
+          resources:
+            requests: { cpu: "250m", memory: "256Mi" }
+            limits:   { cpu: "1",    memory: "512Mi" }
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+type: Opaque
+stringData:
+  username: testuser
+  password: testpassword     # use a real secret manager in production!

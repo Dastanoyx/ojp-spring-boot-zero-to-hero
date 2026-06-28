@@ -1,0 +1,75 @@
+name: ojp-zero-to-hero
+
+# Shared infrastructure for every module:
+#   - PostgreSQL 17  (port 5432)
+#   - MySQL 8.4      (port 3306)
+#   - OJP Server     (port 1059)  with DB drivers mounted from ./drivers/ojp-libs
+#
+# Bring up:   docker compose up -d
+# Tear down:  docker compose down            (keeps volumes)
+#             docker compose down -v          (wipes data)
+#
+# The observability profile (Prometheus + Grafana) lives in
+# ../06-observability/docker-compose.observability.yml and is opt-in.
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: ojp-postgres
+    environment:
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpassword
+      POSTGRES_DB: defaultdb
+    # max_prepared_transactions is needed for some transactional paths through OJP
+    command: ["postgres", "-c", "max_prepared_transactions=100"]
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testuser -d defaultdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mysql:
+    image: mysql:8.4
+    container_name: ojp-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: defaultdb
+      MYSQL_USER: testuser
+      MYSQL_PASSWORD: testpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysqldata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ptestpassword"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ojp-server:
+    image: rrobetti/ojp:0.4.7-beta
+    container_name: ojp-server
+    # host networking keeps the JDBC URLs simple (localhost:1059) and lets the
+    # server reach the DB containers via published ports just like your app does.
+    network_mode: host
+    # JDBC drivers are NOT bundled since v0.4.0-beta — they must be mounted.
+    # Run ./drivers/download-drivers.sh first to populate ./drivers/ojp-libs.
+    volumes:
+      - ./drivers/ojp-libs:/opt/ojp/ojp-libs
+    environment:
+      # Run the JVM in UTC to avoid timezone surprises in timestamp handling
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=UTC"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  mysqldata:

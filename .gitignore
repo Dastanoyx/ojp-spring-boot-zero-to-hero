@@ -1,0 +1,30 @@
+# Build
+target/
+build/
+*.class
+*.jar
+!**/.mvn/wrapper/*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+
+# OJP drivers downloaded at runtime
+ojp-libs/
+
+# Logs & local
+*.log
+logs/
+*.env.local
+
+# Load test output
+05-load-test/results/
+*.jtl

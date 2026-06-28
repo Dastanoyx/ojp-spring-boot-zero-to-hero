@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.example</groupId>
+    <artifactId>hello-ojp</artifactId>
+    <version>1.0.0</version>
+    <name>01-hello-ojp</name>
+    <description>Minimal Spring Boot + OJP + PostgreSQL CRUD</description>
+
+    <properties>
+        <java.version>21</java.version>
+        <ojp.version>0.4.7-beta</ojp.version>
+    </properties>
+
+    <dependencies>
+        <!-- Web layer for the REST CRUD endpoints -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- JPA for the repository, BUT we exclude HikariCP:
+             pooling must live in the OJP server, not in each app instance. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.zaxxer</groupId>
+                    <artifactId>HikariCP</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- The OJP Type 3 JDBC driver. This replaces the direct PostgreSQL driver
+             on the app side; the actual postgres driver lives in the OJP server. -->
+        <dependency>
+            <groupId>org.openjproxy</groupId>
+            <artifactId>ojp-jdbc-driver</artifactId>
+            <version>${ojp.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

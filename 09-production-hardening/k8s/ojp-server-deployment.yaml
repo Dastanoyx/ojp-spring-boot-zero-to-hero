@@ -1,0 +1,64 @@
+# OJP Server as a Kubernetes Deployment + Service.
+# Run 2+ replicas across nodes/zones for HA; the OJP driver's multinode URL
+# (or a headless Service) lets clients balance and fail over.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ojp-server
+  labels: { app: ojp-server }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: ojp-server }
+  template:
+    metadata:
+      labels: { app: ojp-server }
+    spec:
+      # Spread replicas across nodes so one node failure doesn't take out HA.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels: { app: ojp-server }
+      containers:
+        - name: ojp-server
+          image: rrobetti/ojp:0.4.7-beta
+          ports:
+            - containerPort: 1059
+              name: grpc
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Duser.timezone=UTC -XX:MaxRAMPercentage=75.0"
+          resources:
+            requests: { cpu: "500m", memory: "512Mi" }
+            limits:   { cpu: "2",    memory: "1Gi" }
+          volumeMounts:
+            - name: ojp-libs
+              mountPath: /opt/ojp/ojp-libs
+          # Adjust probes to your OJP version's health endpoint if available.
+          readinessProbe:
+            tcpSocket: { port: 1059 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: 1059 }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+      volumes:
+        # Mount JDBC drivers (incl. proprietary ones) via a PVC or initContainer.
+        - name: ojp-libs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ojp-server
+spec:
+  selector: { app: ojp-server }
+  ports:
+    - port: 1059
+      targetPort: 1059
+      name: grpc
+  # Headless service lets the driver discover individual pods for client-side LB.
+  clusterIP: None

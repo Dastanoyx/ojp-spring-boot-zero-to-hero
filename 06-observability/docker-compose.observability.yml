@@ -1,0 +1,34 @@
+name: ojp-observability
+
+# Opt-in observability stack: Prometheus scrapes the OJP server's metrics,
+# Grafana visualizes them. Run alongside ../infra/docker-compose.yml.
+#
+#   docker compose -f docker-compose.observability.yml up -d
+#
+# Then open Grafana at http://localhost:3000 (admin / admin).
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ojp-prometheus
+    network_mode: host          # so it can scrape the host-networked OJP server
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ojp-grafana
+    network_mode: host
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped

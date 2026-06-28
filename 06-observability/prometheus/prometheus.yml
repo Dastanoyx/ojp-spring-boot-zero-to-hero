@@ -1,0 +1,23 @@
+# Prometheus scrape config for the OJP server.
+#
+# IMPORTANT: confirm the OJP server's metrics host:port and path against the
+# canonical telemetry docs for your version:
+#   https://github.com/Open-J-Proxy/ojp/blob/main/documents/telemetry/README.md
+# Adjust the target/metrics_path below to match what your OJP build exposes.
+
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: ojp-server
+    # Update this to the OJP server's Prometheus endpoint for your version.
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["localhost:9090"]   # <-- verify against telemetry docs
+        labels:
+          service: ojp-server
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

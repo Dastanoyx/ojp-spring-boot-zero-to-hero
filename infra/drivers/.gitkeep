@@ -1,0 +1,2 @@
+# Driver JARs are downloaded at runtime by download-drivers.sh into ./ojp-libs
+# and are gitignored. This file keeps the directory in version control.
